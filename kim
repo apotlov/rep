@@ -1,0 +1,107 @@
+unit uLibraryAirspace;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Buttons, Vcl.ExtCtrls,
+  Vcl.ComCtrls, Vcl.Grids, Vcl.DBGrids, Data.DB, Oracle;
+
+type
+  TfmLibraryAirspace = class(TForm)
+    lblNumber: TLabel;
+    lblName: TLabel;
+    edtNumber: TEdit;
+    edtName: TEdit;
+    lblList: TLabel;
+    dbgCatalogSTList: TDBGrid;
+    edtComment: TRichEdit;
+    pnlTaskBar: TPanel;
+    btnLoadAirspace: TBitBtn;
+    btnSaveAirspace: TBitBtn;
+    btnDel: TBitBtn;
+    dsCatalogSTList: TDataSource;
+    procedure FormShow(Sender: TObject);
+    procedure btnDelClick(Sender: TObject);
+    procedure btnLoadAirspaceClick(Sender: TObject);
+    procedure dbgCatalogSTListCellClick(Column: TColumn);
+    procedure btnSaveAirspaceClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  fmLibraryAirspace: TfmLibraryAirspace;
+
+implementation
+
+uses
+  uAirspaceDB, uConnect, uAirspaceData, uAirspaceDataTypes, uAGS;
+{$R *.dfm}
+
+procedure TfmLibraryAirspace.btnDelClick(Sender: TObject);
+var
+  qDelAirspaceVar: TOracleQuery;
+begin
+  if MessageDlg('Вы действительно хотите удалть вариант?', mtCustom, [mbYes, mbNo], 0)= mrYes then
+  begin
+    qDelAirspaceVar := TOracleQuery.Create(nil);
+    qDelAirspaceVar.Session := dmConnect.osKIM_ORVD;
+    qDelAirspaceVar.SQL.Text := 'delete from catalog_st where catalog_dp_id = '+dbgCatalogSTList.DataSource.DataSet.FieldByName('CATALOG_PD_ID').AsString;
+    qDelAirspaceVar.Execute;
+  end
+  else
+  begin
+  exit
+  end;
+end;
+
+
+procedure TfmLibraryAirspace.btnLoadAirspaceClick(Sender: TObject);
+begin
+  try
+    AirspaceData.Clear;
+
+    AirspaceData.CatalogID := StrToInt(fmLibraryAirspace.edtNumber.Text);
+    dmAirspace.LoadAirways;
+    dmAirspace.LoadPoints;
+    dmAirspace.LoadSegments;
+    dmAirspace.LoadAirwsegm;
+    dmAirspace.LoadRulelevel;
+    dmAirspace.LoadSidStar;
+    dmAirspace.LoadSSPoints;
+    dmAirspace.LoadSSRoute;
+    dmAirspace.LoadHldZones;
+    AirspaceData.ResetDataStructures;
+
+    AGS.DrawAirspaceStructure;
+  except
+    AirspaceData.Clear;
+    ShowMessage('Ошибка при импортировании структуры!');
+  end;
+end;
+
+procedure TfmLibraryAirspace.btnSaveAirspaceClick(Sender: TObject);
+begin
+//...
+end;
+
+procedure TfmLibraryAirspace.dbgCatalogSTListCellClick(Column: TColumn);
+begin
+  edtNumber.Text := dbgCatalogSTList.DataSource.DataSet.FieldByName('CATALOG_ST_ID').AsString;
+  edtName.Text :=  dbgCatalogSTList.DataSource.DataSet.FieldByName('NAME').AsString;
+  edtComment.Text := dbgCatalogSTList.DataSource.DataSet.FieldByName('COMMENTARY').AsString;
+end;
+
+procedure TfmLibraryAirspace.FormShow(Sender: TObject);
+begin
+  dmAirspace.qSelCatalogST.Open;
+
+  edtNumber.Text := dmAirspace.qSelCatalogSTCATALOG_ST_ID.AsString;
+  edtName.Text := dmAirspace.qSelCatalogSTNAME.AsString;
+  edtComment.Text := dmAirspace.qSelCatalogSTCOMMENTARY.AsString;
+end;
+
+end.
