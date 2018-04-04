@@ -1,0 +1,53 @@
+PROCEDURE LOADFLOWSTOLOCAL ( flow_id IN NUMBER, var_com IN STRING, name_var IN STRING, fl_date IN DATE, u_id IN NUMBER ) IS
+
+TYPE trips_tab IS TABLE OF trips_sut%ROWTYPE;
+TYPE route_tab IS TABLE OF route_sut%ROWTYPE;
+trips  trips_tab := trips_tab();
+routes route_tab := route_tab();
+user_var NUMBER;
+
+BEGIN
+    SELECT catalog_pd_online_id INTO user_var FROM ratm_settings WHERE user_id = u_id;     
+
+    DELETE FROM trips_sut WHERE catalog_pd_id = user_var;
+    DELETE FROM route_sut WHERE catalog_pd_id = user_var;
+
+    SELECT * BULK COLLECT INTO trips  FROM trips_sut WHERE catalog_pd_id = flow_id;
+    SELECT * BULK COLLECT INTO routes FROM route_sut WHERE catalog_pd_id = flow_id;
+    
+        UPDATE catalog_pd SET VAR_COMMENT = var_com, NAME = name_var, FLY_DATE = fl_date WHERE catalog_pd_id = user_var;   
+    
+        FORALL i in trips.first .. trips.last
+           INSERT INTO   trips_sut (  catalog_pd_id, trip_ident, acft_ident, acft_type, dep_ad_lat, dep_ad_rus, dep_id, dest_ad_lat,
+                         dest_ad_rus, dest_id, dep_time, dest_time, this_day_priz, inter_fly, russia_code, weight_cat, fly_type,
+                         reg_number, status, history, iszonein, prioritet, ppm_fl_date, distance, isdomintairl, typeflight,
+                         rnv_d, rns_d, pntinrf_id, pntinrf_code, timeinrf, pntoutrf_id, pntoutrf_code, timeoutrf, rnv_h, rnv_t, rns_h, rns_t, airlhist_id,
+                         equipment, sid_id, star_id, star_trajectory_id, runway_dep_id, runway_dest_id, obt, ibt, stand_id_dep, stand_id_dest )
+           VALUES     (  user_var, trips(i).trip_ident, trips(i).acft_ident, trips(i).acft_type, trips(i).dep_ad_lat, 
+                         trips(i).dep_ad_rus, trips(i).dep_id, trips(i).dest_ad_lat, trips(i).dest_ad_rus, trips(i).dest_id, trips(i).dep_time, 
+                         trips(i).dest_time, trips(i).this_day_priz, trips(i).inter_fly, trips(i).russia_code, trips(i).weight_cat, 
+                         trips(i).fly_type, trips(i).reg_number, trips(i).status, trips(i).history, trips(i).iszonein, 
+                         trips(i).prioritet, trips(i).ppm_fl_date, trips(i).distance, trips(i).isdomintairl, trips(i).typeflight, trips(i).rnv_d, 
+                         trips(i).rns_d, trips(i).pntinrf_id, trips(i).pntinrf_code, trips(i).timeinrf, trips(i).pntoutrf_id, trips(i).pntoutrf_code, 
+                         trips(i).timeoutrf, trips(i).rnv_h, trips(i).rnv_t, trips(i).rns_h,trips(i). rns_t, trips(i).airlhist_id, trips(i).equipment, 
+                         trips(i).sid_id, trips(i).star_id, trips(i).star_trajectory_id, trips(i).runway_dep_id, trips(i).runway_dest_id, 
+                         trips(i).obt, trips(i).ibt, trips(i).stand_id_dep, trips(i).stand_id_dest ) ;
+        FORALL i in routes.first .. routes.last                 
+           INSERT INTO   route_sut (  catalog_pd_id, trip_ident, speed, points_id, segments_id, latitude, longitude, firs_code, isclimb,
+                         pnthist_id, pnthist2_id, seg_stat, airways_id, point_number, moment, moment2, dist, lat_c, long_c,
+                         vert_speed, ksi, phi, rturn, vert_profile, eastwestdirect, isstraight, vertical_point, sector_code, atc, navigation_point,
+                         isholdingzone, procedure_type, merge_point, ss_point_id, altitude, point, end_point, ac_weight, ver_id, ver_x, 
+                         ver_y, acceleration, thrust, firs_id, sector_id, inout, ac_configuration, ac_spoilers )
+           VALUES     (  user_var, routes(i).trip_ident, routes(i).speed, routes(i).points_id, routes(i).segments_id, routes(i).latitude, 
+                         routes(i).longitude, routes(i).firs_code, routes(i).isclimb, routes(i).pnthist_id, routes(i).pnthist2_id, 
+                         routes(i).seg_stat, routes(i).airways_id, routes(i).point_number, routes(i).moment, routes(i).moment2, 
+                         routes(i).dist, routes(i).lat_c, routes(i).long_c, routes(i).vert_speed, routes(i).ksi, routes(i).phi, routes(i).rturn, 
+                         routes(i).vert_profile, routes(i).eastwestdirect, routes(i).isstraight, routes(i).vertical_point, 
+                         routes(i).sector_code, routes(i).atc, routes(i).navigation_point, routes(i).isholdingzone, routes(i).procedure_type, 
+                         routes(i).merge_point, routes(i).ss_point_id, routes(i).altitude, routes(i).point, routes(i).end_point, 
+                         routes(i).ac_weight, routes(i).ver_id, routes(i).ver_x, routes(i).ver_y, routes(i).acceleration, routes(i).thrust, routes(i).firs_id, 
+                         routes(i).sector_id, routes(i).inout, routes(i).ac_configuration, routes(i).ac_spoilers) ;          
+
+    COMMIT;
+
+END LOADFLOWSTOLOCAL;
